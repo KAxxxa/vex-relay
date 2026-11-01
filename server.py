@@ -1,4 +1,4 @@
-import asyncio
+=import asyncio
 import websockets
 import json
 
@@ -9,21 +9,24 @@ async def handler(websocket):
     try:
         async for message in websocket:
             data = json.loads(message)
-            # Отправляем всем, кроме отправителя
+            # Пересылаем всё всем, кроме отправителя
             for client in clients:
                 if client != websocket:
                     await client.send(message)
             
-            # Если кто-то зашел/вышел, обновляем счетчик онлайна
-            if data.get("type") in ("join", "leave"):
+            # Обновляем список онлайн
+            if data.get("type") == "join":
+                users = [json.loads(ws.path) if False else "User" for ws in clients] # Заглушка для теста
+                # В реальном коде мы бы хранили ники, но для простоты мы шлем счетчик
                 count = len(clients)
                 for client in clients:
-                    await client.send(json.dumps({"type": "online", "count": count}))
+                    try:
+                        await client.send(json.dumps({"type": "online", "count": count}))
+                    except: pass
     except websockets.exceptions.ConnectionClosed:
         pass
     finally:
         clients.remove(websocket)
-        # Обновляем счетчик при выходе
         count = len(clients)
         for client in clients:
             try:
